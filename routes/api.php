@@ -14,10 +14,13 @@ use Illuminate\Support\Facades\Route as Route;
 */
 
 
-Route::post('/create','UserController@create');
-Route::get('/read','UserController@read');
-Route::post('/update','UserController@update');
-Route::post('/delete','UserController@delete');
+Route::post('/create/user','UserController@create');
+Route::post('/create/category','CategoryController@create');
+Route::get('/read/category','CategoryController@read');
+Route::get('/readall/user','UserController@readAll');
+Route::get('/readbyid/user','UserController@readById');
+Route::post('/update/user','UserController@update');
+Route::post('/delete/user','UserController@delete');
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
