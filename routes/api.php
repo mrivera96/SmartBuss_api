@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route as Route;
 
 
 Route::post('/create/user','UserController@create');
+Route::post('/login','UserController@login');
 Route::post('/create/category','CategoryController@create');
 Route::get('/read/category','CategoryController@read');
 Route::get('/readall/user','UserController@readAll');

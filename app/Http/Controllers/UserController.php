@@ -9,6 +9,43 @@ use Illuminate\Support\Facades\Crypt;
 
 class UserController extends Controller
 {
+  private function showErrorParameters(){
+    return response()->json([
+      "error"=>1,
+      "message"=>'Error al validar los parámetros de consulta. Asegúrese de enviar los parámetros correctamente e intente de nuevo.'],
+      400);
+
+  }
+
+  private function showErrorCredentials(){
+    return response()->json([
+      "error"=>1,
+      "message"=>"Las credenciales que proporcionó no coinciden"],
+      400);
+  }
+
+  public function login(Request $request){
+
+    $validate = ['password'     =>  'string|required',
+                'email'     =>  'string|required'];
+    if(!$this->validateParams($request, $validate)){
+      $this->showErrorParameters();
+    }else{
+      $user = User::where('email',$request->email)->get();
+      if(count($user)>0){
+        if($request->password == Crypt::decript($user[ 'password'])){
+          return response()->json([
+            "error"=>0,
+            "message"=>"login correcto"],
+            200);
+        }else{
+          $this->showErrorCredentials();
+        }
+      }else{
+        $this->showErrorCredentials();
+      }
+    }
+  }
 
     public function create(Request $request){
         $newUSer = new User();
@@ -20,21 +57,30 @@ class UserController extends Controller
                     'role'      =>  'integer|required'];
 
        if(!$this->validateParams($request, $validate)){
-           return response()->json('Error al validar los parámetros de consulta. Asegúrese de enviar los parámetros correctamente e intente de nuevo.', 400);
-       }else{
+         $this->showErrorParameters();
+        }else{
 
            if(!$this->validateParams($request, ['email'     =>  'unique:users']))
-               return response()->json('El usuario que intenta crear ya existe.', 400);
+               return response()->json([
+                 'error'=>1,
+                 'message'=>'El usuario que intenta crear ya existe.'],
+                 400);
 
            if(!$this->validateParams($request, ['password'  =>  'min:8']))
-               return response()->json('La contraseña debe tener una longitud mínima de 8 caracteres.', 400);
+               return response()->json([
+                 'error'=>1,
+                 'message'=>'La contraseña debe tener una longitud mínima de 8 caracteres.'],
+                 400);
 
            $newUSer->name=$request->name;
            $newUSer->email=$request->email;
            $newUSer->password=Crypt::encrypt($request->password);
             if( $request->has('image') && !empty($request->image)){
                if(!$this->validate($request,['image'=>'image|mimes:jpeg,png,jpg,gif,svg|max:2048'])){
-                   return response()->json('La imagen debe pesar por máximo 2 MB y ser de formato jpeg, png, jpg, gif o svg.', 400);
+                   return response()->json([
+                     'error'=>1,
+                     'message'=>'La imagen debe pesar por máximo 2 MB y ser de formato jpeg, png, jpg, gif o svg.'],
+                     400);
                }else{
                    $imageName = time().'.'.request()->image->getClientOriginalExtension();
                    request()->image->move(public_path('images'), $imageName);
@@ -46,9 +92,15 @@ class UserController extends Controller
            $newUSer->role=$request->role;
 
            if($newUSer->save()){
-               return response()->json('Usuario creado correctamente', 200);
+               return response()->json([
+                 'error'=>0,
+                 'message'=>'Usuario creado correctamente'],
+               200);
            }else{
-               return response()->json('Ha ocurrido un error al crear el usuario. Intente de nuevo', 500);
+               return response()->json([
+                 'error'=>1,
+                 'message'=>'Ha ocurrido un error al crear el usuario. Intente de nuevo'],
+                 500);
            }
        }
     }
@@ -56,9 +108,15 @@ class UserController extends Controller
     public function readAll(){
         $users=User::all();
         if($users){
-            return response()->json($users, 200);
+            return response()->json([
+              'error'=>0,
+              'data'=>$users],
+              200);
         }else{
-            return response()->json('Error al cargar los usuarios', 500);
+            return response()->json([
+              'error'=>1,
+              'message'=>'Error al cargar los usuarios'],
+              500);
         }
 
     }
@@ -67,9 +125,15 @@ class UserController extends Controller
         $id = $request->id;
         $user=User::find($id);
         if($user){
-            return response()->json($user, 200);
+            return response()->json([
+              'error'=>0,
+              'data'=>$user],
+              200);
         }else{
-            return response()->json('Error al cargar datos del usuario', 500);
+            return response()->json([
+              'error'=>1,
+              'message'=>'Error al cargar datos del usuario'],
+              500);
         }
 
     }
@@ -85,7 +149,7 @@ class UserController extends Controller
             'role'      =>  'integer|required'];
 
         if(!$this->validateParams($request, $validate)){
-            return response()->json('Error al validar los parámetros de consulta. Asegúrese de enviar los parámetros correctamente e intente de nuevo.', 400);
+            $this->showErrorParameters();
         }else{
             $id=$request->id;
             $upUSer = User::find($id);
@@ -95,7 +159,10 @@ class UserController extends Controller
 
             }else{
                 if(!$this->validateParams($request, ['email'     =>  'unique:users']))
-                    return response()->json('El email que intenta ingresar ya existe.', 400);
+                    return response()->json([
+                      'error'=>1,
+                      'message'=>'El email que intenta ingresar ya existe.'],
+                      400);
             }
 
 
@@ -106,7 +173,10 @@ class UserController extends Controller
 
             if( $request->has('image') && !empty($request->image)){
                 if(!$this->validate($request,['image'=>'image|mimes:jpeg,png,jpg,gif,svg|max:2048'])){
-                    return response()->json('La imagen debe pesar por máximo 2 MB y ser de formato jpeg, png, jpg, gif o svg.', 400);
+                    return response()->json([
+                      'error'=>1,
+                      'message'=>'La imagen debe pesar por máximo 2 MB y ser de formato jpeg, png, jpg, gif o svg.'],
+                      400);
                 }else{
                     $imageName = time().'.'.request()->image->getClientOriginalExtension();
                     request()->image->move(public_path('images'), $imageName);
@@ -118,26 +188,37 @@ class UserController extends Controller
             $upUSer->role=$request->role;
 
             if($upUSer->save()){
-                return response()->json('Usuario actualizado correctamente', 200);
+                return response()->json([
+                  'error'=>0,
+                  'message'=>'Usuario actualizado correctamente'],
+                  200);
             }else{
-                return response()->json('Ha ocurrido un error al actualizar el usuario. Intente de nuevo', 500);
+                return response()->json([
+                  'error'=>1,
+                  'message'=>'Ha ocurrido un error al actualizar el usuario. Intente de nuevo'],
+                  500);
             }
         }
     }
 
     public function delete(Request $request){
         if(!$this->validateParams($request, ['id'=>'integer|required'])){
-            return response()->json('Error al validar los parámetros de consulta. Asegúrese de enviar los parámetros correctamente e intente de nuevo.', 400);
+            $this->showErrorParameters();
         }else {
             $id = $request->id;
             $delUSer = User::find($id);
             if($delUSer->delete()){
-                return response()->json('Usuario eliminado correctamente', 200);
+                return response()->json([
+                  'error'=>0,
+                  'message'=>'Usuario eliminado correctamente'],
+                200);
             }else{
-                return response()->json('Ha ocurrido un error al eliminar el usuario. Intente de nuevo', 500);
+                return response()->json([
+                  'error'=>1,
+                  'message'=>'Ha ocurrido un error al eliminar el usuario. Intente de nuevo'],
+                  500);
             }
         }
-
     }
 
 
